@@ -21,6 +21,7 @@ public class Client {
 
     private EventWithMessage<Message> receiver;
     private Event connectionClosed;
+    private Event connectionOpened;
 
     public Client(ClientConfig config) {
         this.config = config;
@@ -48,6 +49,7 @@ public class Client {
     private void startSynchronously() throws IOException {
         this.clientSocket = new Socket(this.config.getAddress(), this.config.getPort());
         this.writer = new PrintWriter(this.clientSocket.getOutputStream());
+        this.invokeOnConnectionOpened();
         createReader();
     }
 
@@ -99,6 +101,7 @@ public class Client {
         public void run() {
             try {
                 clientSocket = new Socket(config.getAddress(), config.getPort());
+                invokeOnConnectionOpened();
                 writer = new PrintWriter(clientSocket.getOutputStream());
                 createReader();
             } catch (IOException e) {
@@ -132,6 +135,16 @@ public class Client {
 
     public void onConnectionClosed(Event event) {
         this.connectionClosed = event;
+    }
+
+    private void invokeOnConnectionOpened() {
+        if(this.connectionOpened != null) {
+            this.connectionOpened.onEventOccurred();
+        }
+    }
+
+    public void onConnectionOpened(Event event) {
+        this.connectionOpened = event;
     }
 
     public boolean isStarted() {
