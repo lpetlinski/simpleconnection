@@ -59,8 +59,9 @@ public class Client {
             @Override
             public void onEventOccurred(StringMessage msg) {
                 Message message = Client.this.config.getProtocol().toMessage(msg.getData());
-                if (message != null) {
+                while (message != null) {
                     Client.this.invokeOnReceive(message);
+                    message = Client.this.config.getProtocol().toMessage("");
                 }
             }
         });

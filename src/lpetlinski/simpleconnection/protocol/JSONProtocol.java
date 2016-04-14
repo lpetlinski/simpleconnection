@@ -16,10 +16,8 @@ public class JSONProtocol extends BaseProtocol {
     public Message toMessage(String message) {
         synchronized (lockObj) {
             ObjectMapper mapper = new ObjectMapper();
-            TemporaryMessage tmp;
-            try {
-                tmp = mapper.readValue(buffer + message, TemporaryMessage.class);
-            } catch (IOException e) {
+            TemporaryMessage tmp = getMessage(message, mapper);
+            if (tmp == null) {
                 buffer += message;
                 return null;
             }
@@ -39,9 +37,7 @@ public class JSONProtocol extends BaseProtocol {
                 this.invokeParseError(e);
                 return null;
             }
-
-            this.buffer = "";
-            return (Message)result;
+            return (Message) result;
         }
     }
 
@@ -63,11 +59,29 @@ public class JSONProtocol extends BaseProtocol {
         return result;
     }
 
-    private static class TemporaryMessage{
+    private TemporaryMessage getMessage(String msg, ObjectMapper mapper) {
+        TemporaryMessage tmp = null;
+        String tmpMessage = buffer + msg;
+        int end = tmpMessage.lastIndexOf("}");
+        int actual = tmpMessage.indexOf("}");
+        while (tmp == null && actual != -1 && actual <= end) {
+            try {
+                String actualMsg = tmpMessage.substring(0, actual + 1);
+                tmp = mapper.readValue(actualMsg, TemporaryMessage.class);
+                buffer = tmpMessage.substring(actual + 1, tmpMessage.length());
+            } catch (IOException e) {
+                actual = tmpMessage.indexOf("}", actual + 1);
+            }
+        }
+        return tmp;
+    }
+
+    private static class TemporaryMessage {
         private String classType;
         private String message;
 
-        public TemporaryMessage() {}
+        public TemporaryMessage() {
+        }
 
         @JsonGetter
         public String getClassType() {

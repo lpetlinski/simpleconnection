@@ -85,8 +85,9 @@ public class Server {
             @Override
             public void onEventOccurred(StringMessage msg) {
                 Message message = Server.this.config.getProtocol().toMessage(msg.getData());
-                if (message != null) {
+                while (message != null) {
                     Server.this.invokeOnReceive(message);
+                    message = Server.this.config.getProtocol().toMessage("");
                 }
             }
         });
