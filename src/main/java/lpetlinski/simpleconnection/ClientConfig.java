@@ -1,6 +1,5 @@
 package lpetlinski.simpleconnection;
 
-import com.sun.javaws.exceptions.InvalidArgumentException;
 import lpetlinski.simpleconnection.protocol.Protocol;
 
 public class ClientConfig {
