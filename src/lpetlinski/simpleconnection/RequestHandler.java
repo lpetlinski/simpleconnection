@@ -27,7 +27,7 @@ class RequestHandler implements Runnable {
                 read = this.reader.read(buffer);
                 if (read != -1) {
                     String tmp = new String(buffer);
-                    this.invokeOnRead(tmp);
+                    this.invokeOnRead(tmp.substring(0, read));
                 }
             }
         } catch (IOException exc) {

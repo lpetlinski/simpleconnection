@@ -68,7 +68,11 @@ public class JSONProtocol extends BaseProtocol {
             try {
                 String actualMsg = tmpMessage.substring(0, actual + 1);
                 tmp = mapper.readValue(actualMsg, TemporaryMessage.class);
-                buffer = tmpMessage.substring(actual + 1, tmpMessage.length());
+                if(actual == end) {
+                    buffer = "";
+                } else {
+                    buffer = tmpMessage.substring(actual + 1, tmpMessage.length());
+                }
             } catch (IOException e) {
                 actual = tmpMessage.indexOf("}", actual + 1);
             }
