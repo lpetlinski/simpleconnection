@@ -4,10 +4,14 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lpetlinski.simpleconnection.events.Message;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
 public class JSONProtocol extends BaseProtocol {
+
+    private static final Logger logger = LogManager.getLogger(JSONProtocol.class);
 
     private String buffer = "";
     private Object lockObj = new Object();
@@ -61,18 +65,25 @@ public class JSONProtocol extends BaseProtocol {
 
     private TemporaryMessage getMessage(String msg, ObjectMapper mapper) {
         TemporaryMessage tmp = null;
+        logger.debug("New message: " + msg);
+        logger.debug("Actual buffer: " + msg);
         String tmpMessage = buffer + msg;
+        logger.debug("Full message: " + msg);
         int end = tmpMessage.lastIndexOf("}");
         int actual = tmpMessage.indexOf("}");
+        logger.trace("Parsing. End: " + end);
         while (tmp == null && actual != -1 && actual <= end) {
             try {
+                logger.trace("Parsing. Actual: " + actual);
                 String actualMsg = tmpMessage.substring(0, actual + 1);
+                logger.trace("Parsing. ActualMsg: " + actualMsg);
                 tmp = mapper.readValue(actualMsg, TemporaryMessage.class);
                 if(actual == end) {
                     buffer = "";
                 } else {
                     buffer = tmpMessage.substring(actual + 1, tmpMessage.length());
                 }
+                logger.trace("Parsing. Resulting buffer: " + buffer);
             } catch (IOException e) {
                 actual = tmpMessage.indexOf("}", actual + 1);
             }

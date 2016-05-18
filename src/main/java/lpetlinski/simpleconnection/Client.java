@@ -4,12 +4,19 @@ import lpetlinski.simpleconnection.events.Event;
 import lpetlinski.simpleconnection.events.EventWithMessage;
 import lpetlinski.simpleconnection.events.Message;
 import lpetlinski.simpleconnection.events.StringMessage;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+/**
+ * Tcp client wrapper on socket.
+ */
 public class Client {
+
+    private static final Logger logger = LogManager.getLogger(Client.class);
 
     private Thread subThread;
     private PrintWriter writer;
@@ -23,6 +30,10 @@ public class Client {
     private Event connectionClosed;
     private Event connectionOpened;
 
+    /**
+     * Creates new instance.
+     * @param config Configuration of this client.
+     */
     public Client(ClientConfig config) {
         this.config = config;
         this.started = false;
@@ -31,6 +42,10 @@ public class Client {
         }
     }
 
+    /**
+     * Starts the client.
+     * @throws IOException
+     */
     public void startClient() throws IOException {
         synchronized (runLock) {
             if(this.started) {
@@ -39,8 +54,10 @@ public class Client {
             this.started = true;
         }
         if(this.config.isSynchronous()) {
+            logger.debug("Creating client synchronously");
             startSynchronously();
         } else {
+            logger.debug("Creating client asynchronously.");
             this.subThread = new Thread(new InnerClient());
             this.subThread.start();
         }
@@ -58,6 +75,7 @@ public class Client {
         this.reader.onReadFromServer(new EventWithMessage<StringMessage>() {
             @Override
             public void onEventOccurred(StringMessage msg) {
+                logger.debug("Got message from server: " + msg.getData());
                 Message message = Client.this.config.getProtocol().toMessage(msg.getData());
                 while (message != null) {
                     Client.this.invokeOnReceive(message);
@@ -68,6 +86,7 @@ public class Client {
         this.reader.onReaderClosed(new Event() {
             @Override
             public void onEventOccurred() {
+                logger.debug("Reader closed.");
                 Client.this.invokeOnConnectionClosed();
                 if (Client.this.isStarted()) {
                     Client.this.stopClient();
@@ -77,6 +96,9 @@ public class Client {
         this.reader.startReading();
     }
 
+    /**
+     * Stops the client socket and sub thread if running asynchronously.
+     */
     public void stopClient() {
         synchronized (runLock) {
             if(!this.started) {
@@ -84,6 +106,7 @@ public class Client {
             }
             this.started = false;
         }
+        logger.debug("Stopping client.");
         try {
             if(!this.clientSocket.isClosed()) {
                 this.clientSocket.close();
@@ -92,7 +115,7 @@ public class Client {
                 this.subThread.join();
             }
         } catch (Exception e) {
-            // do nothing
+            logger.trace("Exception occurred while stopping client.", e);
         }
     }
 
@@ -106,11 +129,15 @@ public class Client {
                 writer = new PrintWriter(clientSocket.getOutputStream());
                 createReader();
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.warn("Exception occurred while connecting", e);
             }
         }
     }
 
+    /**
+     * Sends the message.
+     * @param message
+     */
     public void send(Message message) {
         if(this.writer != null) {
             this.writer.print(config.getProtocol().toString(message));
@@ -124,6 +151,10 @@ public class Client {
         }
     }
 
+    /**
+     * Setter for handler when received message.
+     * @param receiver Handler to be called when message is received.
+     */
     public void onReceive(EventWithMessage<Message> receiver) {
         this.receiver = receiver;
     }
@@ -134,6 +165,10 @@ public class Client {
         }
     }
 
+    /**
+     * Setter for handler when connection is closed.
+     * @param event Handler to be called when connection is closed.
+     */
     public void onConnectionClosed(Event event) {
         this.connectionClosed = event;
     }
@@ -144,6 +179,10 @@ public class Client {
         }
     }
 
+    /**
+     * Setter for handler when connection is opened.
+     * @param event Handler to be called when connection is opened.
+     */
     public void onConnectionOpened(Event event) {
         this.connectionOpened = event;
     }
